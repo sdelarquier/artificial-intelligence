@@ -53,8 +53,27 @@ def naked_twins(values):
     Pseudocode for this algorithm on github:
     https://github.com/udacity/artificial-intelligence/blob/master/Projects/1_Sudoku/pseudocode.md
     """
-    # TODO: Implement this function!
-    raise NotImplementedError
+    new_values = values.copy()
+    for bA in values:
+        if len(values[bA]) == 2:
+            for bB in peers[bA]:
+                if values[bA] == values[bB]:
+                    shared_peers = set(peers[bA]).intersection(set(peers[bB]))
+                    for peer in shared_peers:
+                        for d in values[bA]:
+                            new_values[peer] = new_values[peer].replace(d, '')
+#     # find all boxes with only two digits
+#     unsolved_2digits = [b for b in boxes if len(values[b]) == 2]
+#     for b in unsolved_2digits:
+#         # find all peer boxes with the same 2 digits and no more (aka, "twins")
+#         twins = [b_twin for b_twin in peers[b] if values[b] == values[b_twin]]
+#         for b_twin in twins:
+#             # for all twins, remove the 2 digits from all shared peers
+#             shared_peers = set(peers[bA]).intersection(set(peers[bB]))
+#             for b_peer in shared_peers:
+#                 for d in values[b]:
+#                     new_values[b_peer] = new_values[b_peer].replace(d, '')
+    return new_values
 
 
 def eliminate(values):
@@ -74,7 +93,12 @@ def eliminate(values):
         The values dictionary with the assigned values eliminated from peers
     """
     # TODO: Copy your code from the classroom to complete this function
-    raise NotImplementedError
+    multi_boxes = [k for k, v in values.items() if len(v) > 1]
+    for b in multi_boxes:
+        b_peer_values = set(values[b_peer] for b_peer in peers[b] if len(values[b_peer]) == 1)
+        b_uniq_values = set(values[b]).difference(b_peer_values)
+        values[b] = ''.join(sorted(b_uniq_values))
+    return values
 
 
 def only_choice(values):
@@ -98,7 +122,15 @@ def only_choice(values):
     You should be able to complete this function by copying your code from the classroom
     """
     # TODO: Copy your code from the classroom to complete this function
-    raise NotImplementedError
+    multi_boxes = [k for k, v in values.items() if len(v) > 1]
+    for b in multi_boxes:
+        for unit in units[b]:
+            b_unit_values = set(values[b_unit] for b_unit in unit)
+            b_uniq_values = set(values[b]).difference(b_unit_values)
+            if len(b_uniq_values) == 1:
+                values[b] = b_uniq_values.pop()
+                break
+    return values
 
 
 def reduce_puzzle(values):
@@ -116,7 +148,37 @@ def reduce_puzzle(values):
         no longer produces any changes, or False if the puzzle is unsolvable 
     """
     # TODO: Copy your code from the classroom and modify it to complete this function
-    raise NotImplementedError
+    stalled = False
+    unsolved_boxes = lambda values: len([b for b in boxes if len(values[b]) > 1])
+    unsolved_boxes_before = unsolved_boxes(values)
+    while not stalled:
+        values = eliminate(values)
+        unsolved_boxes_after = unsolved_boxes(values)
+        if unsolved_boxes_after == 0:
+            stalled = True
+        
+        values = only_choice(values)
+        unsolved_boxes_after = unsolved_boxes(values)
+        if unsolved_boxes_after == 0:
+            stalled = True
+        
+        values = naked_twins(values)
+        unsolved_boxes_after = unsolved_boxes(values)
+        if unsolved_boxes_after == 0:
+            stalled = True
+        
+        # Make sure you stop when your stuck
+        if unsolved_boxes_after == unsolved_boxes_before:
+            stalled = True
+        
+        # Catch unsolvable cases
+        if any(len(v) == 0 for v in values.values()):
+            return False
+        
+        # Update number of unsolved boxes
+        unsolved_boxes_before = unsolved_boxes_after
+    
+    return values
 
 
 def search(values):
@@ -139,7 +201,20 @@ def search(values):
     and extending it to call the naked twins strategy.
     """
     # TODO: Copy your code from the classroom to complete this function
-    raise NotImplementedError
+    values = reduce_puzzle(values)
+    if values is False:
+        return False ## Failed earlier
+    if all(len(values[s]) == 1 for s in boxes): 
+        return values ## Solved!
+    # Choose one of the unfilled squares with the fewest possibilities
+    n, b = min((len(values[b]), b) for b in boxes if len(values[b]) > 1)
+    # Now use recurrence to solve each one of the resulting sudokus, and 
+    for value in values[b]:
+        new_sudoku = values.copy()
+        new_sudoku[b] = value
+        attempt = search(new_sudoku)
+        if attempt:
+            return attempt
 
 
 def solve(grid):
