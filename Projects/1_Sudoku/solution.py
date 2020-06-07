@@ -8,8 +8,9 @@ square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','45
 unitlist = row_units + column_units + square_units
 
 # TODO: Update the unit list to add the new diagonal units
-unitlist = unitlist
-
+diag_right = list(''.join([r, c]) for r, c in zip(rows, cols))
+diag_left = list(''.join([r, c]) for r, c in zip(rows[::-1], cols))
+unitlist += [diag_right, diag_left]
 
 # Must be called after all units (including diagonals) are added to the unitlist
 units = extract_units(unitlist, boxes)
