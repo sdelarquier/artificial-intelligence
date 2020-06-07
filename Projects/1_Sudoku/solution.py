@@ -115,11 +115,14 @@ def only_choice(values):
     You should be able to complete this function by copying your code from the classroom
     """
     # TODO: Copy your code from the classroom to complete this function
-    for unit in unitlist:
-        for digit in '123456789':
-            dplaces = [box for box in unit if digit in values[box]]
-            if len(dplaces) == 1:
-                values[dplaces[0]] = digit
+    multi_boxes = [k for k, v in values.items() if len(v) > 1]
+    for b in multi_boxes:
+        for unit in units[b]:
+            b_unit_values = set(values[b_unit] for b_unit in unit)
+            b_uniq_values = set(values[b]).difference(b_unit_values)
+            if len(b_uniq_values) == 1:
+                values[b] = b_uniq_values.pop()
+                break
     return values
 
 
