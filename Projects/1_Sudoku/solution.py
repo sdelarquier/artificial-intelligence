@@ -8,9 +8,8 @@ square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','45
 unitlist = row_units + column_units + square_units
 
 # TODO: Update the unit list to add the new diagonal units
-diag_right = list(''.join([r, c]) for r, c in zip(rows, cols))
-diag_left = list(''.join([r, c]) for r, c in zip(rows[::-1], cols))
-unitlist += [diag_right, diag_left]
+unitlist = unitlist
+
 
 # Must be called after all units (including diagonals) are added to the unitlist
 units = extract_units(unitlist, boxes)
@@ -54,6 +53,7 @@ def naked_twins(values):
     Pseudocode for this algorithm on github:
     https://github.com/udacity/artificial-intelligence/blob/master/Projects/1_Sudoku/pseudocode.md
     """
+    # TODO: Implement this function!
     new_values = values.copy()
     # find all boxes with only two digits
     unsolved_2digits = [b for b in boxes if len(values[b]) == 2]
@@ -62,8 +62,7 @@ def naked_twins(values):
         twins = [b_twin for b_twin in peers[b] if values[b] == values[b_twin]]
         for b_twin in twins:
             # for all twins, remove the 2 digits from all shared peers
-            shared_peers = set(peers[b]).intersection(set(peers[b_twin]))
-            for b_peer in shared_peers:
+            for b_peer in set(peers[b]).intersection(peers[b_twin]):
                 for d in values[b]:
                     new_values[b_peer] = new_values[b_peer].replace(d, '')
     return new_values
@@ -86,11 +85,11 @@ def eliminate(values):
         The values dictionary with the assigned values eliminated from peers
     """
     # TODO: Copy your code from the classroom to complete this function
-    solved_values = [box for box in values.keys() if len(values[box]) == 1]
-    for box in solved_values:
-        digit = values[box]
-        for peer in peers[box]:
-            values[peer] = values[peer].replace(digit, '')
+    multi_boxes = [k for k, v in values.items() if len(v) > 1]
+    for b in multi_boxes:
+        b_peer_values = set(values[b_peer] for b_peer in peers[b] if len(values[b_peer]) == 1)
+        b_uniq_values = set(values[b]).difference(b_peer_values)
+        values[b] = ''.join(sorted(b_uniq_values))
     return values
 
 
@@ -141,17 +140,36 @@ def reduce_puzzle(values):
         no longer produces any changes, or False if the puzzle is unsolvable 
     """
     # TODO: Copy your code from the classroom and modify it to complete this function
-    solved_values = [box for box in values.keys() if len(values[box]) == 1]
     stalled = False
+    unsolved_boxes = lambda values: len([b for b in boxes if len(values[b]) > 1])
+    unsolved_boxes_before = unsolved_boxes(values)
     while not stalled:
-        solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
         values = eliminate(values)
+        unsolved_boxes_after = unsolved_boxes(values)
+        if unsolved_boxes_after == 0:
+            stalled = True
+        
         values = only_choice(values)
+        unsolved_boxes_after = unsolved_boxes(values)
+        if unsolved_boxes_after == 0:
+            stalled = True
+        
         values = naked_twins(values)
-        solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
-        stalled = solved_values_before == solved_values_after
-        if len([box for box in values.keys() if len(values[box]) == 0]):
+        unsolved_boxes_after = unsolved_boxes(values)
+        if unsolved_boxes_after == 0:
+            stalled = True
+        
+        # Make sure you stop when your stuck
+        if unsolved_boxes_after == unsolved_boxes_before:
+            stalled = True
+        
+        # Catch unsolvable cases
+        if any(len(v) == 0 for v in values.values()):
             return False
+        
+        # Update number of unsolved boxes
+        unsolved_boxes_before = unsolved_boxes_after
+    
     return values
 
 
