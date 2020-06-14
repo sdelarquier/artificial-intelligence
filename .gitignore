@@ -3,4 +3,4 @@ __pycache__/
 Icon*
 *.zip
 *.json
-
+*.pyc
